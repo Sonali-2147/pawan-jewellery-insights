@@ -67,7 +67,7 @@ const Login = () => {
               <LogIn className="w-8 h-8 text-yellow-500" />
             </div>
             <h1 className="text-3xl font-display font-bold gold-gradient-text">
-              Pawan Gold
+              Pavan Gold
             </h1>
             <p className="text-muted-foreground mt-2">Insights </p>
           </div>
@@ -83,7 +83,7 @@ const Login = () => {
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
                   type="email"
-                  placeholder="pawangold@gmail.com"
+                  placeholder="Pavangold@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="input-premium pl-10"
@@ -124,7 +124,7 @@ const Login = () => {
 
           {/* Footer */}
           <p className="text-center text-xs text-muted-foreground mt-6">
-            © 2026 Pawan Gold. All rights reserved.
+            © 2026 Pavan Gold. All rights reserved.
           </p>
         </div>
       </div>

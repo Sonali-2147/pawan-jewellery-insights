@@ -34,9 +34,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const login = (email: string, password: string): boolean => {
     // Default user credentials
-    const DEFAULT_EMAIL = "pawangold@gmail.com";
-    const DEFAULT_PASSWORD = "pawangold@123";
-    const DEFAULT_NAME = "Pawan Gold";
+    const DEFAULT_EMAIL = "Pavangold@gmail.com";
+    const DEFAULT_PASSWORD = "Pavangold@123";
+    const DEFAULT_NAME = "Pavan Gold";
 
     if (email === DEFAULT_EMAIL && password === DEFAULT_PASSWORD) {
       const newUser: AuthUser = {
