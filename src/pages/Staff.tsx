@@ -107,16 +107,14 @@ const Staff = () => {
       <div className="card-premium p-6">
         <h3 className="text-lg font-display font-semibold text-foreground mb-4">Staff Management</h3>
         <div className="text-muted-foreground space-y-2">
-          <p>The StocksGPT API currently supports searching staff by mobile number.</p>
+          
           <p>Use the search above to find staff details including:</p>
           <ul className="list-disc list-inside ml-4 mt-2 space-y-1">
             <li>Staff ID (for customer assignments)</li>
             <li>Name and contact information</li>
             <li>Joining and leaving dates</li>
           </ul>
-          <p className="mt-4 text-sm">
-            <span className="text-primary">Note:</span> Full CRUD operations for staff would require additional API endpoints.
-          </p>
+          
         </div>
       </div>
     </DashboardLayout>

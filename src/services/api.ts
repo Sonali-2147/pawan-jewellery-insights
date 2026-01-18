@@ -1,5 +1,4 @@
-// API Base URL - Update this to your server address
-export const API_BASE_URL = "http://your-server:8003";
+export const API_BASE_URL = "https://vksum1qvxl.execute-api.us-east-2.amazonaws.com";
 
 // Helper function to make API calls
 async function apiCall<T>(
@@ -32,7 +31,7 @@ export const customerApi = {
       status: string;
       page: number;
       limit: number;
-      total_records: number;
+      total: number;
       total_pages: number;
       data: import("@/types").Customer[];
     }>(url);

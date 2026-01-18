@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Plus, Download, Search, X, Filter, MapPin, Table, Pencil, Trash2 } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
@@ -109,10 +109,18 @@ const Customers = () => {
   const customers = customersData?.data || [];
   const purposes = purposesData?.data || [];
   const totalPages = customersData?.total_pages || 1;
-  const totalRecords = customersData?.total_records || 0;
+  const totalRecords = customersData?.total || 0;
+
+  // Enhance customers with purpose_name
+  const enhancedCustomers = useMemo(() => {
+    return customers.map((customer) => ({
+      ...customer,
+      purpose_name: purposes.find((p) => p.id === customer.purpose)?.purpose || `Purpose ${customer.purpose}`,
+    }));
+  }, [customers, purposes]);
 
   // Filter by search locally
-  const filteredCustomers = customers.filter((customer) =>
+  const filteredCustomers = enhancedCustomers.filter((customer) =>
     customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     customer.mob_no.includes(searchTerm) ||
     customer.address.toLowerCase().includes(searchTerm.toLowerCase())
@@ -154,7 +162,7 @@ const Customers = () => {
     const csvContent = [
       headers.join(","),
       ...filteredCustomers.map((c) =>
-        [c.name, c.mob_no, c.address, c.purpose_name || c.purpose, c.whatsapp, c.notification, c.joining_date, c.latitude, c.longitude].join(",")
+        [c.name, c.mob_no, c.address, c.purpose_name, c.whatsapp, c.notification, c.joining_date, c.latitude, c.longitude].join(",")
       ),
     ].join("\n");
 
@@ -195,7 +203,7 @@ const Customers = () => {
           <div className="flex gap-3">
             <Button onClick={handleExportExcel} variant="outline" className="border-border hover:bg-muted">
               <Download className="w-4 h-4 mr-2" />
-              Export Excel
+              Export CSV
             </Button>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
@@ -376,7 +384,7 @@ const Customers = () => {
                       <td className="text-muted-foreground">{customer.address}</td>
                       <td>
                         <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                          {customer.purpose_name || `Purpose ${customer.purpose}`}
+                          {customer.purpose_name}
                         </span>
                       </td>
                       <td className="text-muted-foreground">{customer.joining_date}</td>
@@ -393,9 +401,74 @@ const Customers = () => {
                                 <DialogTitle className="font-display text-xl gold-gradient-text">Edit Customer</DialogTitle>
                               </DialogHeader>
                               <div className="space-y-4 mt-4">
-                                <Input placeholder="Name *" className="input-premium" value={newCustomer.name} onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })} />
-                                <Input placeholder="Mobile *" className="input-premium" value={newCustomer.mob_no} onChange={(e) => setNewCustomer({ ...newCustomer, mob_no: e.target.value })} />
-                                <Input placeholder="Address" className="input-premium" value={newCustomer.address} onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })} />
+                                <Input
+                                  placeholder="Customer Name *"
+                                  className="input-premium"
+                                  value={newCustomer.name}
+                                  onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                                />
+                                <Input
+                                  placeholder="Mobile Number *"
+                                  className="input-premium"
+                                  value={newCustomer.mob_no}
+                                  onChange={(e) => setNewCustomer({ ...newCustomer, mob_no: e.target.value })}
+                                />
+                                <Input
+                                  placeholder="Address"
+                                  className="input-premium"
+                                  value={newCustomer.address}
+                                  onChange={(e) => setNewCustomer({ ...newCustomer, address: e.target.value })}
+                                />
+                                <select
+                                  className="input-premium w-full"
+                                  value={newCustomer.purpose}
+                                  onChange={(e) => setNewCustomer({ ...newCustomer, purpose: Number(e.target.value) })}
+                                >
+                                  {purposes.map((p) => (
+                                    <option key={p.id} value={p.id}>{p.purpose}</option>
+                                  ))}
+                                </select>
+                                <Input
+                                  type="date"
+                                  className="input-premium"
+                                  value={newCustomer.joining_date}
+                                  onChange={(e) => setNewCustomer({ ...newCustomer, joining_date: e.target.value })}
+                                />
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-foreground">WhatsApp</Label>
+                                  <Switch
+                                    checked={newCustomer.whatsapp === "yes"}
+                                    onCheckedChange={(checked) => setNewCustomer({ ...newCustomer, whatsapp: checked ? "yes" : "no" })}
+                                  />
+                                </div>
+                                <div className="flex items-center justify-between">
+                                  <Label className="text-foreground">Notifications</Label>
+                                  <Switch
+                                    checked={newCustomer.notification === "yes"}
+                                    onCheckedChange={(checked) => setNewCustomer({ ...newCustomer, notification: checked ? "yes" : "no" })}
+                                  />
+                                </div>
+                                <div className="flex gap-2">
+                                  <Input
+                                    placeholder="Latitude"
+                                    type="number"
+                                    step="any"
+                                    className="input-premium flex-1"
+                                    value={newCustomer.latitude || ""}
+                                    onChange={(e) => setNewCustomer({ ...newCustomer, latitude: e.target.value ? Number(e.target.value) : null })}
+                                  />
+                                  <Input
+                                    placeholder="Longitude"
+                                    type="number"
+                                    step="any"
+                                    className="input-premium flex-1"
+                                    value={newCustomer.longitude || ""}
+                                    onChange={(e) => setNewCustomer({ ...newCustomer, longitude: e.target.value ? Number(e.target.value) : null })}
+                                  />
+                                  <Button type="button" variant="outline" onClick={handleGetLocation} className="border-border hover:bg-muted">
+                                    <MapPin className="w-4 h-4" />
+                                  </Button>
+                                </div>
                                 <Button onClick={handleUpdateCustomer} className="w-full btn-gold" disabled={updateMutation.isPending}>
                                   {updateMutation.isPending ? "Updating..." : "Update Customer"}
                                 </Button>
@@ -449,11 +522,26 @@ const Customers = () => {
         </TabsContent>
 
         <TabsContent value="map">
-          <CustomerMap customers={filteredCustomers} className="h-[500px]" />
-          <p className="text-sm text-muted-foreground mt-4">
-            Showing {filteredCustomers.filter(c => c.latitude && c.longitude).length} customers with location data on map
-          </p>
-        </TabsContent>
+  {isLoading ? (
+    <div className="h-[500px] flex items-center justify-center bg-card rounded-lg border border-border">
+      <p className="text-muted-foreground animate-pulse">Loading map with customers...</p>
+    </div>
+  ) : error ? (
+    <div className="h-[500px] flex items-center justify-center bg-card rounded-lg border border-destructive/30 text-destructive">
+      Error loading map – check API connection
+    </div>
+  ) : (
+    <>
+      <CustomerMap 
+        customers={filteredCustomers ?? []} 
+        className="h-[500px]" 
+      />
+      <p className="text-sm text-muted-foreground mt-4">
+        Showing {(filteredCustomers ?? []).filter(c => c.latitude && c.longitude).length} customers with location data on map
+      </p>
+    </>
+  )}
+</TabsContent>
       </Tabs>
     </DashboardLayout>
   );

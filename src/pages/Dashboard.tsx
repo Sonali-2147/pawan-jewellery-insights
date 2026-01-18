@@ -1,4 +1,4 @@
-import { Users, Target, UserPlus, TrendingUp, IndianRupee, Calendar } from "lucide-react";
+import { Users, Target, UserPlus, TrendingUp, Calendar } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import StatCard from "@/components/ui/StatCard";
@@ -17,54 +17,55 @@ import {
 } from "recharts";
 
 const Dashboard = () => {
-  // Fetch analytics - last 7 days
+  // Last 7 days customer additions
   const { data: lastNDaysData } = useQuery({
     queryKey: ["analytics", "lastNDays"],
     queryFn: () => analyticsApi.getLastNDays(7),
     retry: 1,
   });
 
-  // Fetch staff analytics
+  // Staff performance (last 30 days)
   const { data: staffCountData } = useQuery({
     queryKey: ["analytics", "staffCount"],
     queryFn: () => analyticsApi.getStaffCount(30),
     retry: 1,
   });
 
-  // Fetch purposes count
+  // All purposes count
   const { data: purposesData } = useQuery({
     queryKey: ["purposes"],
     queryFn: () => purposeApi.getAll(),
     retry: 1,
   });
 
-  // Fetch customers for total count
+  // Total customers – use reasonable limit so total_records is reliable
   const { data: customersData } = useQuery({
-    queryKey: ["customers", 1],
-    queryFn: () => customerApi.getAll(1, 1),
+    queryKey: ["customers-total"],
+    queryFn: () => customerApi.getAll(1, 20), // ← key change: 20 items
     retry: 1,
+    staleTime: 5 * 60 * 1000, // Cache 5 min for speed
   });
 
-  const salesData = lastNDaysData?.data?.map((d) => ({
-    date: d.date.slice(5), // MM-DD format
-    count: d.count,
-  })).reverse() || [];
-
-  const staffData = staffCountData?.data?.slice(0, 5) || [];
-
-  const totalCustomers = customersData?.total_records || 0;
-  const totalPurposes = purposesData?.count || 0;
-  const totalStaff = staffData.length || 0;
-  
-  // Calculate today's customers
-  const todayCount = lastNDaysData?.data?.[0]?.count || 0;
-
-  // Recent customers from first page
+  // Recent 5 customers
   const { data: recentCustomersData } = useQuery({
     queryKey: ["customers", "recent"],
     queryFn: () => customerApi.getAll(1, 5),
     retry: 1,
   });
+
+  // Data preparation
+  const salesData = lastNDaysData?.data?.map((d) => ({
+    date: d.date.slice(5), // MM-DD
+    count: d.count,
+  })).reverse() || [];
+
+  const staffData = staffCountData?.data?.slice(0, 5) || [];
+
+  const totalCustomers = customersData?.total ?? 0;
+  const totalPurposes = purposesData?.count ?? 0;
+  const totalStaff = staffData.length || 0;
+
+  const todayCount = lastNDaysData?.data?.[0]?.count ?? 0;
 
   const recentCustomers = recentCustomersData?.data || [];
 
@@ -80,9 +81,9 @@ const Dashboard = () => {
         <StatCard
           title="Total Customers"
           value={totalCustomers}
-          subtitle="Active customers"
+          subtitle="All registered customers"
           icon={Users}
-          trend={{ value: 12, isPositive: true }}
+          trend={{ value: 12, isPositive: true }} // Make dynamic later if needed
         />
         <StatCard
           title="Today's Additions"
@@ -93,7 +94,7 @@ const Dashboard = () => {
         <StatCard
           title="Purposes"
           value={totalPurposes}
-          subtitle="Categories available"
+          subtitle="Available categories"
           icon={Target}
         />
         <StatCard
@@ -104,9 +105,9 @@ const Dashboard = () => {
         />
       </div>
 
-      {/* Charts Section */}
+      {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Customer Trend Chart */}
+        {/* Customer Trend */}
         <div className="card-premium p-6">
           <h3 className="text-lg font-display font-semibold text-foreground mb-4 flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary" />
@@ -143,7 +144,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
           ) : (
             <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-              No data available. Connect to API.
+              No data yet – add customers to see trends
             </div>
           )}
         </div>
@@ -159,7 +160,7 @@ const Dashboard = () => {
               <BarChart data={staffData} layout="vertical">
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(30, 8%, 18%)" />
                 <XAxis type="number" stroke="hsl(40, 10%, 55%)" />
-                <YAxis dataKey="staff_name" type="category" stroke="hsl(40, 10%, 55%)" width={100} />
+                <YAxis dataKey="staff_name" type="category" stroke="hsl(40, 10%, 55%)" width={120} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(30, 8%, 10%)",
@@ -173,7 +174,7 @@ const Dashboard = () => {
             </ResponsiveContainer>
           ) : (
             <div className="h-[250px] flex items-center justify-center text-muted-foreground">
-              No staff data available. Connect to API.
+              No staff data yet
             </div>
           )}
         </div>
@@ -208,7 +209,7 @@ const Dashboard = () => {
               ) : (
                 <tr>
                   <td colSpan={4} className="text-center text-muted-foreground py-8">
-                    No customers yet. Connect to API to see data.
+                    No customers yet – add some via Customers page
                   </td>
                 </tr>
               )}

@@ -21,7 +21,7 @@ const Sidebar = () => {
           </div>
           <div>
             <h1 className="font-display text-lg font-semibold gold-gradient-text">
-              Pawan Jewellery
+              Pawan Gold
             </h1>
             <p className="text-xs text-muted-foreground">Association</p>
           </div>
@@ -49,7 +49,7 @@ const Sidebar = () => {
       {/* Footer */}
       <div className="p-4 border-t border-sidebar-border">
         <p className="text-xs text-muted-foreground text-center">
-          © 2024 Pawan Jewellery
+          © 2026 Pawan Gold
         </p>
       </div>
     </aside>
