@@ -97,6 +97,12 @@ export const purposeApi = {
 // ============ STAFF ENDPOINTS ============
 
 export const staffApi = {
+  // Get all staff
+  getAll: () =>
+    apiCall<{ status: string; count: number; data: import("@/types").Staff[] }>(
+      `/staff`
+    ),
+
   // Get staff by mobile number
   getByMobile: (mobNo: string) =>
     apiCall<{ status: string; message: string; data: import("@/types").Staff }>(

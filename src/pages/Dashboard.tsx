@@ -59,11 +59,11 @@ const Dashboard = () => {
     count: d.count,
   })).reverse() || [];
 
-  const staffData = staffCountData?.data?.slice(0, 5) || [];
+  const staffData = staffCountData?.data || [];
 
   const totalCustomers = customersData?.total ?? 0;
   const totalPurposes = purposesData?.count ?? 0;
-  const totalStaff = staffData.length || 0;
+  const totalStaff = staffData.length;
 
   const todayCount = lastNDaysData?.data?.[0]?.count ?? 0;
 
@@ -156,8 +156,8 @@ const Dashboard = () => {
             Staff Performance (Last 30 Days)
           </h3>
           {staffData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
-              <BarChart data={staffData} layout="vertical">
+            <ResponsiveContainer width="100%" height={250 + Math.max(0, (staffData.length - 5) * 20)}>
+              <BarChart data={staffData} layout="vertical" margin={{ left: 120, right: 30 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(30, 8%, 18%)" />
                 <XAxis type="number" stroke="hsl(40, 10%, 55%)" />
                 <YAxis dataKey="staff_name" type="category" stroke="hsl(40, 10%, 55%)" width={120} />

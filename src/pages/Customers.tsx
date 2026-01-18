@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { Plus, Download, Search, X, Filter, MapPin, Table, Pencil, Trash2 } from "lucide-react";
+import { Plus, Download, Search, X, Filter, MapPin, Table, Pencil, Trash2, Calendar as CalendarIcon, UserCircle } from "lucide-react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PageHeader from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/button";
@@ -9,15 +9,32 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
 import CustomerMap from "@/components/maps/CustomerMap";
 import { Customer, Purpose, CustomerFormData } from "@/types";
-import { customerApi, purposeApi } from "@/services/api";
+import { customerApi, purposeApi, staffApi } from "@/services/api";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// Helper function to parse date string and avoid timezone issues
+const parseLocalDate = (dateString: string): Date => {
+  const [year, month, day] = dateString.split('-').map(Number);
+  return new Date(year, month - 1, day);
+};
+
+// Helper function to format date to YYYY-MM-DD
+const formatDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
 
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [purposeFilter, setPurposeFilter] = useState<number | undefined>();
+  const [staffFilter, setStaffFilter] = useState<number | undefined>();
   const [page, setPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
@@ -47,6 +64,13 @@ const Customers = () => {
   const { data: purposesData } = useQuery({
     queryKey: ["purposes"],
     queryFn: () => purposeApi.getAll(),
+    retry: 1,
+  });
+
+  // Fetch staff for filter
+  const { data: staffData } = useQuery({
+    queryKey: ["staff"],
+    queryFn: () => staffApi.getAll(),
     retry: 1,
   });
 
@@ -108,23 +132,31 @@ const Customers = () => {
 
   const customers = customersData?.data || [];
   const purposes = purposesData?.data || [];
+  const staffs = staffData?.data || [];
   const totalPages = customersData?.total_pages || 1;
   const totalRecords = customersData?.total || 0;
 
-  // Enhance customers with purpose_name
+  // Enhance customers with purpose_name and staff_name
   const enhancedCustomers = useMemo(() => {
     return customers.map((customer) => ({
       ...customer,
       purpose_name: purposes.find((p) => p.id === customer.purpose)?.purpose || `Purpose ${customer.purpose}`,
+      staff_name: staffs.find((s) => s.id === customer.staff_id)?.name || `Staff ${customer.staff_id}`,
     }));
-  }, [customers, purposes]);
+  }, [customers, purposes, staffs]);
 
-  // Filter by search locally
-  const filteredCustomers = enhancedCustomers.filter((customer) =>
-    customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    customer.mob_no.includes(searchTerm) ||
-    customer.address.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter by search and filters locally
+  const filteredCustomers = enhancedCustomers.filter((customer) => {
+    const matchesSearch = 
+      customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      customer.mob_no.includes(searchTerm) ||
+      customer.address.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesPurpose = !purposeFilter || customer.purpose === purposeFilter;
+    const matchesStaff = !staffFilter || customer.staff_id === staffFilter;
+    
+    return matchesSearch && matchesPurpose && matchesStaff;
+  });
 
   const recentCustomers = filteredCustomers.slice(0, 3);
 
@@ -157,23 +189,68 @@ const Customers = () => {
     });
   };
 
-  const handleExportExcel = () => {
-    const headers = ["Name", "Mobile", "Address", "Purpose", "WhatsApp", "Notification", "Joining Date", "Latitude", "Longitude"];
-    const csvContent = [
-      headers.join(","),
-      ...filteredCustomers.map((c) =>
-        [c.name, c.mob_no, c.address, c.purpose_name, c.whatsapp, c.notification, c.joining_date, c.latitude, c.longitude].join(",")
-      ),
-    ].join("\n");
+  const handleExportExcel = async () => {
+    try {
+      toast({ title: "Exporting", description: "Preparing filtered records..." });
+      
+      // Export only the filtered customers visible on the page
+      const toExport = filteredCustomers;
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "customers.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-    toast({ title: "Exported", description: "Customer data exported successfully" });
+      if (toExport.length === 0) {
+        toast({ title: "No Data", description: "No customers to export with current filters", variant: "destructive" });
+        return;
+      }
+
+      // Build CSV with proper escaping
+      const escapeCSV = (value: any) => {
+        if (value === null || value === undefined) return "";
+        const strValue = String(value);
+        if (strValue.includes(",") || strValue.includes('"') || strValue.includes("\n")) {
+          return `"${strValue.replace(/"/g, '""')}"`;
+        }
+        return strValue;
+      };
+
+      const headers = ["Name", "Mobile", "Address", "Purpose", "Staff", "WhatsApp", "Notification", "Joining Date", "Latitude", "Longitude"];
+      const csvRows = [
+        headers.map(h => escapeCSV(h)).join(","),
+        ...toExport.map((c) =>
+          [
+            escapeCSV(c.name),
+            escapeCSV(c.mob_no),
+            escapeCSV(c.address),
+            escapeCSV(c.purpose_name),
+            escapeCSV(c.staff_name),
+            escapeCSV(c.whatsapp),
+            escapeCSV(c.notification),
+            escapeCSV(c.joining_date),
+            escapeCSV(c.latitude),
+            escapeCSV(c.longitude)
+          ].join(",")
+        ),
+      ].join("\n");
+
+      const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      
+      link.setAttribute("href", url);
+      link.setAttribute("download", `customers_${new Date().toISOString().split('T')[0]}.csv`);
+      link.style.visibility = "hidden";
+      
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      // Cleanup
+      setTimeout(() => URL.revokeObjectURL(url), 100);
+      
+      const filterInfo = (searchTerm || purposeFilter || staffFilter) ? " (filtered)" : " (all)";
+      toast({ title: "Success", description: `Exported ${toExport.length} customers${filterInfo}` });
+    } catch (err) {
+      console.error("Export error:", err);
+      toast({ title: "Error", description: "Failed to export data", variant: "destructive" });
+    }
   };
 
   const handleGetLocation = () => {
@@ -244,12 +321,38 @@ const Customers = () => {
                       <option key={p.id} value={p.id}>{p.purpose}</option>
                     ))}
                   </select>
-                  <Input
-                    type="date"
-                    className="input-premium"
-                    value={newCustomer.joining_date}
-                    onChange={(e) => setNewCustomer({ ...newCustomer, joining_date: e.target.value })}
-                  />
+                  {/* Calendar Picker for Joining Date */}
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start text-left font-normal ${
+                          !newCustomer.joining_date ? "text-muted-foreground" : ""
+                        } border-border hover:bg-muted`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newCustomer.joining_date ? newCustomer.joining_date : "Pick joining date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-black border-yellow-500" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={newCustomer.joining_date ? parseLocalDate(newCustomer.joining_date) : undefined}
+                        onSelect={(date) => {
+                          if (date) {
+                            setNewCustomer({
+                              ...newCustomer,
+                              joining_date: formatDate(date),
+                            });
+                          }
+                        }}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        className="border-0"
+                      />
+                    </PopoverContent>
+                  </Popover>
                   <div className="flex items-center justify-between">
                     <Label className="text-foreground">WhatsApp</Label>
                     <Switch
@@ -336,10 +439,23 @@ const Customers = () => {
             ))}
           </select>
         </div>
-        {(searchTerm || purposeFilter) && (
+        <div className="relative min-w-[150px]">
+          <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <select
+            className="input-premium pl-10 pr-4 appearance-none cursor-pointer w-full"
+            value={staffFilter || ""}
+            onChange={(e) => setStaffFilter(e.target.value ? Number(e.target.value) : undefined)}
+          >
+            <option value="">All Staff</option>
+            {staffs.map((s) => (
+              <option key={s.id} value={s.id}>{s.name}</option>
+            ))}
+          </select>
+        </div>
+        {(searchTerm || purposeFilter || staffFilter) && (
           <Button
             variant="ghost"
-            onClick={() => { setSearchTerm(""); setPurposeFilter(undefined); }}
+            onClick={() => { setSearchTerm(""); setPurposeFilter(undefined); setStaffFilter(undefined); }}
             className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-4 h-4 mr-2" />
@@ -372,6 +488,7 @@ const Customers = () => {
                     <th>Mobile</th>
                     <th>Address</th>
                     <th>Purpose</th>
+                    <th>Staff</th>
                     <th>Joined</th>
                     <th className="text-right">Actions</th>
                   </tr>
@@ -387,6 +504,7 @@ const Customers = () => {
                           {customer.purpose_name}
                         </span>
                       </td>
+                      <td className="text-muted-foreground text-sm">{customer.staff_name}</td>
                       <td className="text-muted-foreground">{customer.joining_date}</td>
                       <td className="text-right">
                         <div className="flex justify-end gap-2">
@@ -428,12 +546,38 @@ const Customers = () => {
                                     <option key={p.id} value={p.id}>{p.purpose}</option>
                                   ))}
                                 </select>
-                                <Input
-                                  type="date"
-                                  className="input-premium"
-                                  value={newCustomer.joining_date}
-                                  onChange={(e) => setNewCustomer({ ...newCustomer, joining_date: e.target.value })}
-                                />
+                                {/* Calendar Picker for Joining Date */}
+                                <Popover>
+                                  <PopoverTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      className={`w-full justify-start text-left font-normal ${
+                                        !newCustomer.joining_date ? "text-muted-foreground" : ""
+                                      } border-border hover:bg-muted`}
+                                    >
+                                      <CalendarIcon className="mr-2 h-4 w-4" />
+                                      {newCustomer.joining_date ? newCustomer.joining_date : "Pick joining date"}
+                                    </Button>
+                                  </PopoverTrigger>
+                                  <PopoverContent className="w-auto p-0 bg-black border-yellow-500" align="start">
+                                    <Calendar
+                                      mode="single"
+                                      selected={newCustomer.joining_date ? parseLocalDate(newCustomer.joining_date) : undefined}
+                                      onSelect={(date) => {
+                                        if (date) {
+                                          setNewCustomer({
+                                            ...newCustomer,
+                                            joining_date: formatDate(date),
+                                          });
+                                        }
+                                      }}
+                                      disabled={(date) =>
+                                        date > new Date() || date < new Date("1900-01-01")
+                                      }
+                                      className="border-0"
+                                    />
+                                  </PopoverContent>
+                                </Popover>
                                 <div className="flex items-center justify-between">
                                   <Label className="text-foreground">WhatsApp</Label>
                                   <Switch

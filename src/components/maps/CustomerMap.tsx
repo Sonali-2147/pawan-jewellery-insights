@@ -8,10 +8,10 @@ import { Customer } from "@/types";
 const goldIcon = new L.Icon({
   iconUrl: "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-gold.png",
   shadowUrl: "https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png",
-  iconSize: [25, 41],
-  iconAnchor: [12, 41],
-  popupAnchor: [1, -34],
-  shadowSize: [41, 41],
+  iconSize: [15, 25],
+  iconAnchor: [7, 25],
+  popupAnchor: [1, -25],
+  shadowSize: [25, 25],
 });
 
 interface CustomerMapProps {
