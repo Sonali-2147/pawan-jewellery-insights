@@ -49,14 +49,16 @@ const Customers = () => {
     staff_id: 1,
     latitude: null,
     longitude: null,
+    added_from_latitude: null,
+    added_from_longitude: null,
   });
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   // Fetch customers
   const { data: customersData, isLoading, error } = useQuery({
-    queryKey: ["customers", page, purposeFilter],
-    queryFn: () => customerApi.getAll(page, 20, purposeFilter),
+    queryKey: ["customers", page],
+    queryFn: () => customerApi.getAll(page, 30),
     retry: 1,
   });
 
@@ -79,6 +81,7 @@ const Customers = () => {
     mutationFn: customerApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setPage(1); // Reset to first page to show newly added customer
       setIsAddOpen(false);
       resetForm();
       toast({ title: "Success", description: "Customer added successfully" });
@@ -94,6 +97,7 @@ const Customers = () => {
       customerApi.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
+      setPage(1); // Reset to first page after update
       setEditingCustomer(null);
       resetForm();
       toast({ title: "Success", description: "Customer updated successfully" });
@@ -127,6 +131,8 @@ const Customers = () => {
       staff_id: 1,
       latitude: null,
       longitude: null,
+      added_from_latitude: null,
+      added_from_longitude: null,
     });
   };
 
@@ -152,8 +158,8 @@ const Customers = () => {
       customer.mob_no.includes(searchTerm) ||
       customer.address.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesPurpose = !purposeFilter || customer.purpose === purposeFilter;
-    const matchesStaff = !staffFilter || customer.staff_id === staffFilter;
+    const matchesPurpose = !purposeFilter || Number(customer.purpose) === purposeFilter;
+    const matchesStaff = !staffFilter || Number(customer.staff_id) === staffFilter;
     
     return matchesSearch && matchesPurpose && matchesStaff;
   });
@@ -165,12 +171,23 @@ const Customers = () => {
       toast({ title: "Error", description: "Name and mobile are required", variant: "destructive" });
       return;
     }
-    createMutation.mutate(newCustomer);
+    createMutation.mutate({
+      ...newCustomer,
+      staff_id: String(newCustomer.staff_id),
+      purpose: String(newCustomer.purpose),
+    } as any);
   };
 
   const handleUpdateCustomer = () => {
     if (!editingCustomer) return;
-    updateMutation.mutate({ id: editingCustomer.id, data: newCustomer });
+    updateMutation.mutate({
+      id: editingCustomer.id,
+      data: {
+        ...newCustomer,
+        staff_id: String(newCustomer.staff_id),
+        purpose: String(newCustomer.purpose),
+      } as any,
+    });
   };
 
   const openEditDialog = (customer: Customer) => {
@@ -186,6 +203,8 @@ const Customers = () => {
       staff_id: customer.staff_id,
       latitude: customer.latitude,
       longitude: customer.longitude,
+      added_from_latitude: customer.added_from_latitude,
+      added_from_longitude: customer.added_from_longitude,
     });
   };
 
@@ -271,6 +290,24 @@ const Customers = () => {
     }
   };
 
+  const handleGetStaffLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setNewCustomer({
+            ...newCustomer,
+            added_from_latitude: position.coords.latitude,
+            added_from_longitude: position.coords.longitude,
+          });
+          toast({ title: "Staff location captured", description: "Staff added from this location" });
+        },
+        (error) => {
+          toast({ title: "Error", description: "Could not get staff location", variant: "destructive" });
+        }
+      );
+    }
+  };
+
   return (
     <DashboardLayout>
       <PageHeader
@@ -319,6 +356,15 @@ const Customers = () => {
                   >
                     {purposes.map((p) => (
                       <option key={p.id} value={p.id}>{p.purpose}</option>
+                    ))}
+                  </select>
+                  <select
+                    className="input-premium w-full"
+                    value={newCustomer.staff_id}
+                    onChange={(e) => setNewCustomer({ ...newCustomer, staff_id: Number(e.target.value) })}
+                  >
+                    {staffs.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
                     ))}
                   </select>
                   {/* Calendar Picker for Joining Date */}
@@ -387,6 +433,30 @@ const Customers = () => {
                     <Button type="button" variant="outline" onClick={handleGetLocation} className="border-border hover:bg-muted">
                       <MapPin className="w-4 h-4" />
                     </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-foreground">Staff Location (Where Added From)</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        placeholder="Added From Latitude"
+                        type="number"
+                        step="any"
+                        className="input-premium flex-1"
+                        value={newCustomer.added_from_latitude || ""}
+                        onChange={(e) => setNewCustomer({ ...newCustomer, added_from_latitude: e.target.value ? Number(e.target.value) : null })}
+                      />
+                      <Input
+                        placeholder="Added From Longitude"
+                        type="number"
+                        step="any"
+                        className="input-premium flex-1"
+                        value={newCustomer.added_from_longitude || ""}
+                        onChange={(e) => setNewCustomer({ ...newCustomer, added_from_longitude: e.target.value ? Number(e.target.value) : null })}
+                      />
+                      <Button type="button" variant="outline" onClick={handleGetStaffLocation} className="border-border hover:bg-muted" title="Capture current location">
+                        <MapPin className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                   <Button onClick={handleAddCustomer} className="w-full btn-gold" disabled={createMutation.isPending}>
                     {createMutation.isPending ? "Adding..." : "Add Customer"}
@@ -546,6 +616,15 @@ const Customers = () => {
                                     <option key={p.id} value={p.id}>{p.purpose}</option>
                                   ))}
                                 </select>
+                                <select
+                                  className="input-premium w-full"
+                                  value={newCustomer.staff_id}
+                                  onChange={(e) => setNewCustomer({ ...newCustomer, staff_id: Number(e.target.value) })}
+                                >
+                                  {staffs.map((s) => (
+                                    <option key={s.id} value={s.id}>{s.name}</option>
+                                  ))}
+                                </select>
                                 {/* Calendar Picker for Joining Date */}
                                 <Popover>
                                   <PopoverTrigger asChild>
@@ -612,6 +691,30 @@ const Customers = () => {
                                   <Button type="button" variant="outline" onClick={handleGetLocation} className="border-border hover:bg-muted">
                                     <MapPin className="w-4 h-4" />
                                   </Button>
+                                </div>
+                                <div className="space-y-2">
+                                  <Label className="text-sm font-medium text-foreground">Staff Location (Where Added From)</Label>
+                                  <div className="flex gap-2">
+                                    <Input
+                                      placeholder="Added From Latitude"
+                                      type="number"
+                                      step="any"
+                                      className="input-premium flex-1"
+                                      value={newCustomer.added_from_latitude || ""}
+                                      onChange={(e) => setNewCustomer({ ...newCustomer, added_from_latitude: e.target.value ? Number(e.target.value) : null })}
+                                    />
+                                    <Input
+                                      placeholder="Added From Longitude"
+                                      type="number"
+                                      step="any"
+                                      className="input-premium flex-1"
+                                      value={newCustomer.added_from_longitude || ""}
+                                      onChange={(e) => setNewCustomer({ ...newCustomer, added_from_longitude: e.target.value ? Number(e.target.value) : null })}
+                                    />
+                                    <Button type="button" variant="outline" onClick={handleGetStaffLocation} className="border-border hover:bg-muted" title="Capture current location">
+                                      <MapPin className="w-4 h-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                                 <Button onClick={handleUpdateCustomer} className="w-full btn-gold" disabled={updateMutation.isPending}>
                                   {updateMutation.isPending ? "Updating..." : "Update Customer"}

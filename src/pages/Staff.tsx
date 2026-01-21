@@ -100,7 +100,19 @@ const Staff = () => {
     };
 
     fetchAllStaffs();
-  }, []);
+  }, [toast]);
+
+  // Helper function to refresh staff list
+  const refreshStaffList = async (): Promise<void> => {
+    try {
+      const res = await staffApi.getAll();
+      if (res?.status === "success" && res?.data) {
+        setAllStaffs(res.data);
+      }
+    } catch (err) {
+      console.error("Error refreshing staff:", err);
+    }
+  };
 
   // 🔍 Search handler
   const handleSearchStaff = async (): Promise<void> => {
@@ -186,6 +198,9 @@ const Staff = () => {
           joining_date: "",
         });
         setIsDialogOpen(false);
+        
+        // Refresh staff list to show new staff
+        await refreshStaffList();
       } else {
         toast({
           title: "Error",
@@ -217,51 +232,32 @@ const Staff = () => {
     setIsFiltering(true);
 
     try {
-      // Call API to get all staff and filter client-side or use backend filters
-      const res = await fetch(`${import.meta.env.VITE_API_URL || "https://vksum1qvxl.execute-api.us-east-2.amazonaws.com"}/staff`, {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      });
+      // Filter the current allStaffs list
+      let filtered = [...allStaffs];
 
-      const data = await res.json();
-
-      if (data?.status === "success" && data?.data) {
-        // Filter the results client-side
-        let filtered = data.data;
-
-        if (filterName) {
-          filtered = filtered.filter((staff: StaffType) =>
-            staff.name.toLowerCase().includes(filterName.toLowerCase())
-          );
-        }
-
-        if (filterMobile) {
-          filtered = filtered.filter((staff: StaffType) =>
-            staff.mob_no.includes(filterMobile)
-          );
-        }
-
-        if (filterDate) {
-          filtered = filtered.filter((staff: StaffType) =>
-            staff.joining_date === filterDate
-          );
-        }
-
-        setFilteredStaffs(filtered);
-        toast({
-          title: "Success",
-          description: `Found ${filtered.length} staff member(s)`,
-        });
-      } else {
-        setFilteredStaffs([]);
-        toast({
-          title: "Not Found",
-          description: "No staff found",
-          variant: "destructive",
-        });
+      if (filterName) {
+        filtered = filtered.filter((staff: StaffType) =>
+          staff.name.toLowerCase().includes(filterName.toLowerCase())
+        );
       }
+
+      if (filterMobile) {
+        filtered = filtered.filter((staff: StaffType) =>
+          staff.mob_no.includes(filterMobile)
+        );
+      }
+
+      if (filterDate) {
+        filtered = filtered.filter((staff: StaffType) =>
+          staff.joining_date === filterDate
+        );
+      }
+
+      setFilteredStaffs(filtered);
+      toast({
+        title: "Success",
+        description: `Found ${filtered.length} staff member(s)`,
+      });
     } catch (err) {
       toast({
         title: "Error",
@@ -492,6 +488,7 @@ const Staff = () => {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-border">
+                  <th className="text-left py-3 px-4 font-semibold text-foreground">ID</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground">Name</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground">Mobile</th>
                   <th className="text-left py-3 px-4 font-semibold text-foreground">Address</th>
@@ -502,6 +499,7 @@ const Staff = () => {
               <tbody>
                 {allStaffs.map((staff) => (
                   <tr key={staff.id} className="border-b border-border/50 hover:bg-muted/30 transition">
+                    <td className="py-3 px-4 text-muted-foreground font-mono text-sm">{staff.id}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center gap-2">
                         <UserCircle className="w-4 h-4 text-muted-foreground" />

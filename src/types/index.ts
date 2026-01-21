@@ -12,6 +12,8 @@ export interface Customer {
   staff_name?: string;
   latitude: number | null;
   longitude: number | null;
+  added_from_latitude: number | null;
+  added_from_longitude: number | null;
 }
 
 export interface Purpose {
@@ -51,6 +53,8 @@ export interface CustomerFormData {
   staff_id: number;
   latitude: number | null;
   longitude: number | null;
+  added_from_latitude: number | null;
+  added_from_longitude: number | null;
 }
 
 export interface PurposeFormData {
