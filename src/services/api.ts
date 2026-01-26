@@ -37,6 +37,32 @@ export const customerApi = {
     }>(url);
   },
 
+  // Filter customers with multiple parameters
+  filter: (page = 1, limit = 10, filters?: {
+    staff_id?: number;
+    start_date?: string;
+    end_date?: string;
+    date?: string;
+    joining_date?: string;
+    purpose_id?: number;
+  }) => {
+    let url = `/customers/filter?page=${page}&limit=${limit}`;
+    if (filters?.staff_id) url += `&staff_id=${filters.staff_id}`;
+    if (filters?.start_date) url += `&start_date=${filters.start_date}`;
+    if (filters?.end_date) url += `&end_date=${filters.end_date}`;
+    if (filters?.date) url += `&date=${filters.date}`;
+    if (filters?.joining_date) url += `&joining_date=${filters.joining_date}`;
+    if (filters?.purpose_id) url += `&purpose_id=${filters.purpose_id}`;
+    return apiCall<{
+      status: string;
+      page: number;
+      limit: number;
+      total: number;
+      total_pages: number;
+      data: import("@/types").Customer[];
+    }>(url);
+  },
+
   // Get single customer
   getById: (id: number) =>
     apiCall<{ status: string; data: import("@/types").Customer }>(`/customers/${id}`),

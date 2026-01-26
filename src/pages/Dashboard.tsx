@@ -24,6 +24,13 @@ const Dashboard = () => {
     retry: 1,
   });
 
+  // Last 14 days for week-over-week comparison
+  const { data: last14DaysData } = useQuery({
+    queryKey: ["analytics", "last14Days"],
+    queryFn: () => analyticsApi.getLastNDays(14),
+    retry: 1,
+  });
+
   // Staff performance (last 30 days)
   const { data: staffCountData } = useQuery({
     queryKey: ["analytics", "staffCount"],
@@ -69,6 +76,56 @@ const Dashboard = () => {
 
   const recentCustomers = recentCustomersData?.data || [];
 
+  // Calculate week-over-week percentage change
+  const calculateWeekOverWeekChange = () => {
+    console.log('Week-over-week calculation debug:');
+    console.log('last14DaysData:', last14DaysData);
+    
+    if (!last14DaysData?.data || last14DaysData.data.length < 8) {
+      console.log('Insufficient data - need at least 8 days for week-over-week comparison');
+      return { value: 0, isPositive: true };
+    }
+
+    const availableData = last14DaysData.data;
+    const totalDays = availableData.length;
+    
+    // Use first half as "previous week" and second half as "last week"
+    const halfPoint = Math.floor(totalDays / 2);
+    
+    // Last week (more recent days, first half of array)
+    const lastWeekDays = availableData.slice(0, halfPoint);
+    const lastWeekTotal = lastWeekDays.reduce((sum, day) => sum + day.count, 0);
+
+    // Previous week (older days, second half of array)
+    const previousWeekDays = availableData.slice(halfPoint);
+    const previousWeekTotal = previousWeekDays.reduce((sum, day) => sum + day.count, 0);
+
+    console.log('Available days:', totalDays);
+    console.log('Last week data:', lastWeekDays);
+    console.log('Previous week data:', previousWeekDays);
+    console.log('Last week total:', lastWeekTotal);
+    console.log('Previous week total:', previousWeekTotal);
+
+    // Calculate percentage change
+    if (previousWeekTotal === 0) {
+      console.log('Previous week is 0 - returning 0%');
+      return { value: 0, isPositive: true };
+    }
+
+    const percentageChange = ((lastWeekTotal - previousWeekTotal) / previousWeekTotal) * 100;
+    const isPositive = percentageChange >= 0;
+
+    console.log('Percentage change:', percentageChange);
+    console.log('Is positive:', isPositive);
+
+    return {
+      value: Math.abs(Math.round(percentageChange * 10) / 10), // Round to 1 decimal place
+      isPositive
+    };
+  };
+
+  const weekOverWeekChange = calculateWeekOverWeekChange();
+
   return (
     <DashboardLayout>
       <PageHeader 
@@ -83,7 +140,7 @@ const Dashboard = () => {
           value={totalCustomers}
           subtitle="All registered customers"
           icon={Users}
-          trend={{ value: 12, isPositive: true }} // Make dynamic later if needed
+          trend={weekOverWeekChange}
         />
         <StatCard
           title="Today's Additions"

@@ -24,7 +24,7 @@ const StatCard = ({ title, value, subtitle, icon: Icon, trend }: StatCardProps) 
           {trend && (
             <div className={`flex items-center gap-1 mt-2 text-sm ${trend.isPositive ? 'text-success' : 'text-destructive'}`}>
               <span>{trend.isPositive ? '↑' : '↓'}</span>
-              <span>{trend.value}% from last month</span>
+              <span>{trend.value}% from last week</span>
             </div>
           )}
         </div>

@@ -34,10 +34,13 @@ const formatDate = (date: Date): string => {
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [purposeFilter, setPurposeFilter] = useState<number | undefined>();
-  const [staffFilter, setStaffFilter] = useState<number | undefined>();
+  const [staffFilter, setStaffFilter] = useState<string>("");
+  const [dateFilter, setDateFilter] = useState<Date | undefined>();
   const [page, setPage] = useState(1);
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState<Customer | null>(null);
+  const [downloadStartDate, setDownloadStartDate] = useState<Date | undefined>();
+  const [isDownloadOpen, setIsDownloadOpen] = useState(false);
   const [newCustomer, setNewCustomer] = useState<CustomerFormData>({
     name: "",
     mob_no: "",
@@ -55,10 +58,33 @@ const Customers = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  // Fetch customers
+  // Reset page when filters change
+  useEffect(() => {
+    setPage(1);
+  }, [searchTerm, purposeFilter, staffFilter, dateFilter]);
+
+  // Fetch customers using filter endpoint
   const { data: customersData, isLoading, error } = useQuery({
-    queryKey: ["customers", page],
-    queryFn: () => customerApi.getAll(page, 30),
+    queryKey: ["customers", searchTerm, purposeFilter, staffFilter, dateFilter],
+    queryFn: () => {
+      const filters: any = {};
+      if (purposeFilter) filters.purpose_id = purposeFilter;
+      if (staffFilter && !isNaN(Number(staffFilter))) filters.staff_id = Number(staffFilter);
+      if (dateFilter) {
+        const formattedDate = formatDate(dateFilter);
+        filters.start_date = formattedDate; // Use start_date for API range filtering
+      }
+      
+      // Always get all data for client-side pagination
+      const limit = dateFilter || purposeFilter || staffFilter ? 100 : 30;
+      
+      // If we have filters, use the filter endpoint, otherwise use getAll
+      if (Object.keys(filters).length > 0) {
+        return customerApi.filter(1, limit, filters);
+      } else {
+        return customerApi.getAll(1, limit);
+      }
+    },
     retry: 1,
   });
 
@@ -151,18 +177,44 @@ const Customers = () => {
     }));
   }, [customers, purposes, staffs]);
 
-  // Filter by search and filters locally
+  // Apply client-side search filter and date range filter (other filters are handled by API)
   const filteredCustomers = enhancedCustomers.filter((customer) => {
     const matchesSearch = 
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.mob_no.includes(searchTerm) ||
       customer.address.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesPurpose = !purposeFilter || Number(customer.purpose) === purposeFilter;
-    const matchesStaff = !staffFilter || Number(customer.staff_id) === staffFilter;
+    // Date filter: show customers from selected date onwards (not exact match)
+    let matchesDate = true;
+    if (dateFilter) {
+      const selectedDate = formatDate(dateFilter);
+      matchesDate = customer.joining_date >= selectedDate;
+      
+      // Debug logging for first few customers
+      if (enhancedCustomers.indexOf(customer) < 5) {
+        console.log('Date filter debug:', {
+          customerName: customer.name,
+          customerDate: customer.joining_date,
+          selectedDate: selectedDate,
+          matchesDate: matchesDate,
+          comparison: `${customer.joining_date} >= ${selectedDate}`
+        });
+      }
+    }
     
-    return matchesSearch && matchesPurpose && matchesStaff;
+    return matchesSearch && matchesDate;
   });
+
+  // Calculate filtered pagination
+  const itemsPerPage = 30;
+  const totalFilteredPages = Math.ceil(filteredCustomers.length / itemsPerPage);
+  const paginatedCustomers = filteredCustomers.slice(
+    (page - 1) * itemsPerPage,
+    page * itemsPerPage
+  );
+
+  // Use API filtered count if available, otherwise use client-side count
+  const apiFilteredCount = (customersData as any)?.analytics?.total_customers || filteredCustomers.length;
 
   const recentCustomers = filteredCustomers.slice(0, 3);
 
@@ -188,6 +240,7 @@ const Customers = () => {
         purpose: String(newCustomer.purpose),
       } as any,
     });
+    setPage(1); // Reset to first page after update
   };
 
   const openEditDialog = (customer: Customer) => {
@@ -210,15 +263,64 @@ const Customers = () => {
 
   const handleExportExcel = async () => {
     try {
+      setIsDownloadOpen(false);
       toast({ title: "Exporting", description: "Preparing filtered records..." });
       
-      // Export only the filtered customers visible on the page
-      const toExport = filteredCustomers;
-
-      if (toExport.length === 0) {
-        toast({ title: "No Data", description: "No customers to export with current filters", variant: "destructive" });
+      // Fetch data based on selected start date
+      const filters: any = {};
+      if (downloadStartDate) {
+        filters.start_date = formatDate(downloadStartDate);
+      }
+      
+      // Implement paginated export to get all records
+      let allCustomers: any[] = [];
+      let page = 1;
+      let hasMoreData = true;
+      
+      console.log('Starting paginated export...');
+      
+      while (hasMoreData) {
+        const limit = 100; // API limit per page
+        const exportData = Object.keys(filters).length > 0 
+          ? await customerApi.filter(page, limit, filters)
+          : await customerApi.getAll(page, limit);
+        
+        const customers = exportData?.data || [];
+        allCustomers = [...allCustomers, ...customers];
+        
+        console.log(`Page ${page}: Got ${customers.length} customers, total so far: ${allCustomers.length}`);
+        console.log('API response:', {
+          currentPage: exportData?.page,
+          totalPages: exportData?.total_pages,
+          totalRecords: exportData?.total
+        });
+        
+        // Check if there are more records
+        // Continue if we got a full page (100 records) or if API indicates more pages
+        hasMoreData = customers.length === limit;
+        console.log(`Pagination check: got ${customers.length} records, limit is ${limit}, hasMoreData: ${hasMoreData}`);
+        page++;
+        
+        // Safety check to prevent infinite loops
+        if (page > 50) {
+          console.log('Safety limit reached, stopping pagination');
+          break;
+        }
+      }
+      
+      console.log(`Export complete: ${allCustomers.length} total customers fetched`);
+      
+      if (allCustomers.length === 0) {
+        toast({ title: "No Data", description: "No customers found for selected date", variant: "destructive" });
         return;
       }
+
+      // Enhance with purpose and staff names
+      const enhancedExportData = allCustomers.map((customer) => ({
+        ...customer,
+        purpose_name: purposes.find((p) => p.id === customer.purpose)?.purpose || `Purpose ${customer.purpose}`,
+        staff_name: staffs.find((s) => s.id === customer.staff_id)?.name || `Staff ${customer.staff_id}`,
+      }));
 
       // Build CSV with proper escaping
       const escapeCSV = (value: any) => {
@@ -233,7 +335,7 @@ const Customers = () => {
       const headers = ["Name", "Mobile", "Address", "Purpose", "Staff", "WhatsApp", "Notification", "Joining Date", "Latitude", "Longitude"];
       const csvRows = [
         headers.map(h => escapeCSV(h)).join(","),
-        ...toExport.map((c) =>
+        ...enhancedExportData.map((c) =>
           [
             escapeCSV(c.name),
             escapeCSV(c.mob_no),
@@ -254,7 +356,10 @@ const Customers = () => {
       const url = URL.createObjectURL(blob);
       
       link.setAttribute("href", url);
-      link.setAttribute("download", `customers_${new Date().toISOString().split('T')[0]}.csv`);
+      const dateRange = downloadStartDate 
+        ? `from_${formatDate(downloadStartDate)}`
+        : "all";
+      link.setAttribute("download", `customers_${dateRange}.csv`);
       link.style.visibility = "hidden";
       
       document.body.appendChild(link);
@@ -264,8 +369,7 @@ const Customers = () => {
       // Cleanup
       setTimeout(() => URL.revokeObjectURL(url), 100);
       
-      const filterInfo = (searchTerm || purposeFilter || staffFilter) ? " (filtered)" : " (all)";
-      toast({ title: "Success", description: `Exported ${toExport.length} customers${filterInfo}` });
+      toast({ title: "Success", description: `Exported ${allCustomers.length} customers successfully` });
     } catch (err) {
       console.error("Export error:", err);
       toast({ title: "Error", description: "Failed to export data", variant: "destructive" });
@@ -315,10 +419,66 @@ const Customers = () => {
         subtitle="Manage your customer database"
         actions={
           <div className="flex gap-3">
-            <Button onClick={handleExportExcel} variant="outline" className="border-border hover:bg-muted">
-              <Download className="w-4 h-4 mr-2" />
-              Export CSV
-            </Button>
+          <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-border hover:bg-muted">
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-card border-border max-w-md">
+              <DialogHeader>
+                <DialogTitle className="font-display text-xl gold-gradient-text">Export Customer Data</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-foreground">Select Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={`w-full justify-start text-left font-normal ${
+                          !downloadStartDate ? "text-muted-foreground" : ""
+                        } border-border hover:bg-muted`}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {downloadStartDate ? formatDate(downloadStartDate) : "Select date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-black border-yellow-500" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={downloadStartDate}
+                        onSelect={(date) => setDownloadStartDate(date)}
+                        disabled={(date) =>
+                          date > new Date() || date < new Date("1900-01-01")
+                        }
+                        className="border-0"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setDownloadStartDate(undefined);
+                    }}
+                    className="flex-1"
+                  >
+                    Clear
+                  </Button>
+                  <Button
+                    onClick={handleExportExcel}
+                    className="flex-1 btn-gold"
+                  >
+                    Export
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
                 <Button className="btn-gold">
@@ -467,7 +627,7 @@ const Customers = () => {
           </div>
         }
       />
-
+      
       {/* Recent Customers */}
       <div className="mb-8">
         <h3 className="text-lg font-display font-semibold text-foreground mb-4">Recently Added</h3>
@@ -509,23 +669,41 @@ const Customers = () => {
             ))}
           </select>
         </div>
-        <div className="relative min-w-[150px]">
+        <div className="relative min-w-[200px]">
           <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            className="input-premium pl-10 pr-4 appearance-none cursor-pointer w-full"
-            value={staffFilter || ""}
-            onChange={(e) => setStaffFilter(e.target.value ? Number(e.target.value) : undefined)}
-          >
-            <option value="">All Staff</option>
-            {staffs.map((s) => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
+          <Input
+            placeholder="Search staff by name or ID..."
+            className="input-premium pl-10"
+            value={staffFilter}
+            onChange={(e) => setStaffFilter(e.target.value)}
+          />
         </div>
-        {(searchTerm || purposeFilter || staffFilter) && (
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              variant="outline"
+              className={`border-border hover:bg-muted ${!dateFilter ? "text-muted-foreground" : ""}`}
+            >
+              <CalendarIcon className="w-4 h-4 mr-2" />
+              {dateFilter ? formatDate(dateFilter) : "Filter by Date"}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className="w-auto p-0 bg-black border-yellow-500" align="start">
+            <Calendar
+              mode="single"
+              selected={dateFilter}
+              onSelect={(date) => setDateFilter(date)}
+              disabled={(date) =>
+                date > new Date() || date < new Date("1900-01-01")
+              }
+              className="border-0"
+            />
+          </PopoverContent>
+        </Popover>
+        {(searchTerm || purposeFilter || staffFilter || dateFilter) && (
           <Button
             variant="ghost"
-            onClick={() => { setSearchTerm(""); setPurposeFilter(undefined); setStaffFilter(undefined); }}
+            onClick={() => { setSearchTerm(""); setPurposeFilter(undefined); setStaffFilter(""); setDateFilter(undefined); setPage(1); }}
             className="text-muted-foreground hover:text-foreground"
           >
             <X className="w-4 h-4 mr-2" />
@@ -564,7 +742,7 @@ const Customers = () => {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredCustomers.map((customer) => (
+                  {paginatedCustomers.map((customer) => (
                     <tr key={customer.id}>
                       <td className="font-medium text-foreground">{customer.name}</td>
                       <td className="text-muted-foreground">{customer.mob_no}</td>
@@ -749,19 +927,19 @@ const Customers = () => {
             </div>
             {isLoading && <div className="text-center py-8 text-muted-foreground">Loading...</div>}
             {error && <div className="text-center py-8 text-destructive">Error loading customers. Check API connection.</div>}
-            {filteredCustomers.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">No customers found</div>}
+            {paginatedCustomers.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">No customers found</div>}
           </div>
 
           {/* Pagination */}
           <div className="flex items-center justify-between mt-4">
             <p className="text-sm text-muted-foreground">
-              Page {page} of {totalPages} ({totalRecords} total)
+              Page {page} of {totalFilteredPages} ({filteredCustomers.length} filtered, {apiFilteredCount} total)
             </p>
             <div className="flex gap-2">
               <Button variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="border-border hover:bg-muted">
                 Previous
               </Button>
-              <Button variant="outline" onClick={() => setPage(Math.min(totalPages, page + 1))} disabled={page === totalPages} className="border-border hover:bg-muted">
+              <Button variant="outline" onClick={() => setPage(Math.min(totalFilteredPages, page + 1))} disabled={page === totalFilteredPages} className="border-border hover:bg-muted">
                 Next
               </Button>
             </div>
@@ -788,7 +966,7 @@ const Customers = () => {
       </p>
     </>
   )}
-</TabsContent>
+    </TabsContent>
       </Tabs>
     </DashboardLayout>
   );
