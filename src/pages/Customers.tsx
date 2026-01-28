@@ -33,7 +33,7 @@ const formatDate = (date: Date): string => {
 
 const Customers = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [purposeFilter, setPurposeFilter] = useState<number | undefined>();
+  const [purposeFilter, setPurposeFilter] = useState<string | undefined>();
   const [staffFilter, setStaffFilter] = useState<string>("");
   const [dateFilter, setDateFilter] = useState<Date | undefined>();
   const [page, setPage] = useState(1);
@@ -182,18 +182,15 @@ const Customers = () => {
     }));
   }, [customers, purposes, staffs]);
 
-  // Apply client-side search filter and date range filter (other filters are handled by API)
+  // Apply client-side search filter and date range filter (purpose and staff filters are handled by API)
   const filteredCustomers = enhancedCustomers.filter((customer) => {
     const matchesSearch = 
       customer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       customer.mob_no.includes(searchTerm) ||
       customer.address.toLowerCase().includes(searchTerm.toLowerCase());
     
-    // Purpose filter: check if customer matches selected purpose
+    // Purpose filter is handled by API, so all customers already match the purpose filter
     let matchesPurpose = true;
-    if (purposeFilter) {
-      matchesPurpose = customer.purpose === purposeFilter;
-    }
     
     // Date filter: show customers from selected date onwards (not exact match)
     let matchesDate = true;
@@ -211,16 +208,6 @@ const Customers = () => {
           comparison: `${customer.joining_date} >= ${selectedDate}`
         });
       }
-    }
-    
-    // Debug purpose filter
-    if (purposeFilter && enhancedCustomers.indexOf(customer) < 5) {
-      console.log('Purpose filter debug:', {
-        customerName: customer.name,
-        customerPurpose: customer.purpose,
-        filterPurpose: purposeFilter,
-        matches: matchesPurpose
-      });
     }
     
     return matchesSearch && matchesPurpose && matchesDate;
@@ -685,11 +672,11 @@ const Customers = () => {
             <select
               className="input-premium pl-10 pr-4 appearance-none cursor-pointer w-full text-sm"
               value={purposeFilter || ""}
-              onChange={(e) => setPurposeFilter(e.target.value ? Number(e.target.value) : undefined)}
+              onChange={(e) => setPurposeFilter(e.target.value || undefined)}
             >
               <option value="">All Purposes</option>
               {purposes.map((p) => (
-                <option key={p.id} value={p.id}>{p.purpose}</option>
+                <option key={p.id} value={p.purpose}>{p.purpose}</option>
               ))}
             </select>
           </div>
