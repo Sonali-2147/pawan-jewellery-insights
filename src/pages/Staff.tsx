@@ -285,18 +285,20 @@ const Staff = () => {
         actions={
           <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
             <DialogTrigger asChild>
-              <Button className="btn-gold">
+              <Button className="btn-gold text-sm">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Staff
+                <span className="hidden sm:inline">Add Staff</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-md">
+            <DialogContent className="max-w-md mx-4">
               <DialogHeader>
                 <DialogTitle>Add New Staff</DialogTitle>
               </DialogHeader>
               <div className="space-y-4">
                 <Input
                   placeholder="Staff Name"
+                  className="text-sm"
                   value={staffForm.name}
                   onChange={(e) =>
                     setStaffForm({ ...staffForm, name: e.target.value })
@@ -304,6 +306,7 @@ const Staff = () => {
                 />
                 <Input
                   placeholder="Mobile Number"
+                  className="text-sm"
                   value={staffForm.mob_no}
                   onChange={(e) =>
                     setStaffForm({
@@ -314,6 +317,7 @@ const Staff = () => {
                 />
                 <Input
                   placeholder="Address"
+                  className="text-sm"
                   value={staffForm.address}
                   onChange={(e) =>
                     setStaffForm({ ...staffForm, address: e.target.value })
@@ -325,7 +329,7 @@ const Staff = () => {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
-                      className={`w-full justify-start text-left font-normal ${
+                      className={`w-full justify-start text-left font-normal text-sm ${
                         !staffForm.joining_date ? "text-muted-foreground" : ""
                       } border border-input bg-background hover:bg-accent hover:text-accent-foreground`}
                     >
@@ -354,7 +358,7 @@ const Staff = () => {
                 </Popover>
 
                 <Button
-                  className="btn-gold w-full"
+                  className="btn-gold w-full text-sm"
                   onClick={handleAddStaff}
                   disabled={isAddingStaff}
                 >
@@ -367,18 +371,18 @@ const Staff = () => {
       />
 
       {/* 🔎 Filter Section */}
-      <div className="card-premium p-6 mb-8">
+      <div className="card-premium p-4 lg:p-6 mb-8">
         <h3 className="flex items-center gap-2 text-lg font-semibold mb-4">
           <Filter className="w-5 h-5" />
           Filter Staff
         </h3>
 
-        <div className="flex gap-3 items-end flex-wrap">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-end">
           <Input
             placeholder="Filter by Name"
             value={filterName}
             onChange={(e) => setFilterName(e.target.value)}
-            className="w-40"
+            className="w-full sm:w-40 text-sm"
           />
           <Input
             placeholder="Filter by Mobile"
@@ -386,7 +390,7 @@ const Staff = () => {
             onChange={(e) =>
               setFilterMobile(e.target.value.replace(/\D/g, ""))
             }
-            className="w-40"
+            className="w-full sm:w-40 text-sm"
           />
           
           {/* Calendar Picker for Date Filter */}
@@ -394,12 +398,12 @@ const Staff = () => {
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
-                className={`w-40 justify-start text-left font-normal ${
+                className={`w-full sm:w-40 justify-start text-left font-normal text-sm ${
                   !filterDate ? "text-muted-foreground" : ""
                 } border border-input bg-background hover:bg-accent hover:text-accent-foreground`}
               >
                 <CalendarIcon className="mr-2 h-4 w-4" />
-                {filterDate ? filterDate : "Pick a date"}
+                <span className="truncate">{filterDate ? filterDate : "Pick a date"}</span>
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0 bg-black border-yellow-500" align="start">
@@ -419,19 +423,22 @@ const Staff = () => {
             </PopoverContent>
           </Popover>
 
-          <Button
-            onClick={handleFilterStaff}
-            disabled={isFiltering}
-            className="btn-gold"
-          >
-            {isFiltering ? "Filtering..." : "Filter"}
-          </Button>
-          <Button
-            onClick={handleClearFilters}
-            variant="outline"
-          >
-            Clear
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleFilterStaff}
+              disabled={isFiltering}
+              className="btn-gold text-sm flex-1 sm:flex-none"
+            >
+              {isFiltering ? "Filtering..." : "Filter"}
+            </Button>
+            <Button
+              onClick={handleClearFilters}
+              variant="outline"
+              className="text-sm flex-1 sm:flex-none"
+            >
+              Clear
+            </Button>
+          </div>
         </div>
 
         {/* Filtered Results */}
@@ -442,14 +449,13 @@ const Staff = () => {
             </p>
             {filteredStaffs.map((staff) => (
               <div key={staff.id} className="p-4 rounded-lg border bg-muted/30">
-                <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                    <UserCircle className="w-6 h-6 text-primary" />
+                <div className="flex items-start gap-3 sm:gap-4">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <UserCircle className="w-5 h-5 sm:w-6 sm:h-6 text-primary" />
                   </div>
-
-                  <div className="flex-1">
-                    <h4 className="font-semibold">{staff.name}</h4>
-                    <p className="text-sm text-muted-foreground">
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-semibold text-sm sm:text-base truncate">{staff.name}</h4>
+                    <p className="text-sm text-muted-foreground truncate">
                       {staff.address}
                     </p>
                     <p className="text-sm text-muted-foreground">
@@ -460,11 +466,11 @@ const Staff = () => {
                     </p>
                   </div>
 
-                  <div className="flex gap-2 opacity-50">
-                    <Button size="icon" variant="outline" disabled>
+                  <div className="flex gap-1 sm:gap-2 opacity-50 flex-shrink-0">
+                    <Button size="icon" variant="outline" disabled className="h-8 w-8">
                       <Pencil className="w-4 h-4" />
                     </Button>
-                    <Button size="icon" variant="destructive" disabled>
+                    <Button size="icon" variant="destructive" disabled className="h-8 w-8">
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </div>
@@ -476,7 +482,7 @@ const Staff = () => {
       </div>
 
       {/* 📊 All Staff Table */}
-      <div className="card-premium p-6">
+      <div className="card-premium p-4 lg:p-6">
         <h3 className="text-lg font-semibold mb-4">All Staff Members</h3>
         
         {isLoadingAllStaffs ? (
@@ -484,51 +490,57 @@ const Staff = () => {
         ) : allStaffs.length === 0 ? (
           <div className="text-center py-8 text-muted-foreground">No staff found</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-border">
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">ID</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Name</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Mobile</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Address</th>
-                  <th className="text-left py-3 px-4 font-semibold text-foreground">Joining Date</th>
-                  <th className="text-right py-3 px-4 font-semibold text-foreground">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allStaffs.map((staff) => (
-                  <tr key={staff.id} className="border-b border-border/50 hover:bg-muted/30 transition">
-                    <td className="py-3 px-4 text-muted-foreground font-mono text-sm">{staff.id}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-2">
-                        <UserCircle className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-medium text-foreground">{staff.name}</span>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Phone className="w-4 h-4" />
-                        {staff.mob_no}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 text-muted-foreground">{staff.address}</td>
-                    <td className="py-3 px-4 text-muted-foreground">{staff.joining_date}</td>
-                    <td className="py-3 px-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button size="icon" variant="outline" disabled className="h-8 w-8">
-                          <Pencil className="w-4 h-4" />
-                        </Button>
-                        <Button size="icon" variant="destructive" disabled className="h-8 w-8">
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="text-sm text-muted-foreground mt-4">Total: {allStaffs.length} staff members</p>
+          <div className="overflow-x-auto -mx-4 lg:mx-0">
+            <div className="inline-block min-w-full align-middle">
+              <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                <table className="w-full min-w-full">
+                  <thead>
+                    <tr className="border-b border-border">
+                      <th className="text-left py-3 px-4 font-semibold text-foreground text-xs lg:text-sm">ID</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground text-xs lg:text-sm">Name</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground text-xs lg:text-sm hidden sm:table-cell">Mobile</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground text-xs lg:text-sm hidden lg:table-cell">Address</th>
+                      <th className="text-left py-3 px-4 font-semibold text-foreground text-xs lg:text-sm hidden md:table-cell">Joining Date</th>
+                      <th className="text-right py-3 px-4 font-semibold text-foreground text-xs lg:text-sm">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {allStaffs.map((staff) => (
+                      <tr key={staff.id} className="border-b border-border/50 hover:bg-muted/30 transition">
+                        <td className="py-3 px-4 text-muted-foreground font-mono text-xs lg:text-sm">{staff.id}</td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center gap-2">
+                            <UserCircle className="w-4 h-4 text-muted-foreground" />
+                            <span className="font-medium text-foreground text-sm truncate max-w-[100px] lg:max-w-none">{staff.name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground text-sm hidden sm:table-cell">
+                          <div className="flex items-center gap-1">
+                            <Phone className="w-4 h-4" />
+                            <span className="truncate max-w-[100px]">{staff.mob_no}</span>
+                          </div>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground text-sm hidden lg:table-cell">
+                          <div className="truncate max-w-[150px]">{staff.address}</div>
+                        </td>
+                        <td className="py-3 px-4 text-muted-foreground text-sm hidden md:table-cell">{staff.joining_date}</td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex justify-end gap-1 lg:gap-2">
+                            <Button size="icon" variant="outline" disabled className="h-8 w-8">
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button size="icon" variant="destructive" disabled className="h-8 w-8">
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground mt-4 px-4 lg:px-0">Total: {allStaffs.length} staff members</p>
           </div>
         )}
       </div>

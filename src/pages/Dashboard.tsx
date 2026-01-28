@@ -163,7 +163,7 @@ const Dashboard = () => {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
         {/* Customer Trend */}
         <div className="card-premium p-6">
           <h3 className="text-lg font-display font-semibold text-foreground mb-4 flex items-center gap-2">
@@ -171,7 +171,7 @@ const Dashboard = () => {
             Customer Trend (Last 7 Days)
           </h3>
           {salesData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250}>
+            <ResponsiveContainer width="100%" height={200}>
               <AreaChart data={salesData}>
                 <defs>
                   <linearGradient id="salesGradient" x1="0" y1="0" x2="0" y2="1">
@@ -213,11 +213,11 @@ const Dashboard = () => {
             Staff Performance (Last 30 Days)
           </h3>
           {staffData.length > 0 ? (
-            <ResponsiveContainer width="100%" height={250 + Math.max(0, (staffData.length - 5) * 20)}>
-              <BarChart data={staffData} layout="vertical" margin={{ left: 120, right: 30 }}>
+            <ResponsiveContainer width="100%" height={200 + Math.max(0, (staffData.length - 5) * 15)}>
+              <BarChart data={staffData} layout="vertical" margin={{ left: 80, right: 20, top: 20, bottom: 20 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(30, 8%, 18%)" />
                 <XAxis type="number" stroke="hsl(40, 10%, 55%)" />
-                <YAxis dataKey="staff_name" type="category" stroke="hsl(40, 10%, 55%)" width={120} />
+                <YAxis dataKey="staff_name" type="category" stroke="hsl(40, 10%, 55%)" width={80} fontSize={12} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: "hsl(30, 8%, 10%)",
@@ -238,40 +238,52 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Customers */}
-      <div className="card-premium p-6">
+      <div className="card-premium p-4 lg:p-6">
         <h3 className="text-lg font-display font-semibold text-foreground mb-4 flex items-center gap-2">
           <Users className="w-5 h-5 text-primary" />
           Recent Customers
         </h3>
-        <div className="overflow-x-auto">
-          <table className="table-premium">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Mobile</th>
-                <th>Address</th>
-                <th>Joined</th>
-              </tr>
-            </thead>
-            <tbody>
-              {recentCustomers.length > 0 ? (
-                recentCustomers.map((customer) => (
-                  <tr key={customer.id}>
-                    <td className="font-medium text-foreground">{customer.name}</td>
-                    <td className="text-muted-foreground">{customer.mob_no}</td>
-                    <td className="text-muted-foreground">{customer.address}</td>
-                    <td className="text-muted-foreground">{customer.joining_date}</td>
+        <div className="overflow-x-auto -mx-4 lg:mx-0">
+          <div className="inline-block min-w-full align-middle">
+            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+              <table className="table-premium min-w-full">
+                <thead>
+                  <tr>
+                    <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm">Name</th>
+                    <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm hidden sm:table-cell">Mobile</th>
+                    <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm hidden lg:table-cell">Address</th>
+                    <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm">Joined</th>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td colSpan={4} className="text-center text-muted-foreground py-8">
-                    No customers yet – add some via Customers page
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+                </thead>
+                <tbody>
+                  {recentCustomers.length > 0 ? (
+                    recentCustomers.map((customer) => (
+                      <tr key={customer.id}>
+                        <td className="px-3 lg:px-4 py-2 lg:py-3 font-medium text-foreground text-sm">
+                          <div className="truncate max-w-[120px] lg:max-w-none">{customer.name}</div>
+                        </td>
+                        <td className="px-3 lg:px-4 py-2 lg:py-3 text-muted-foreground text-sm hidden sm:table-cell">
+                          <div className="truncate max-w-[100px] lg:max-w-none">{customer.mob_no}</div>
+                        </td>
+                        <td className="px-3 lg:px-4 py-2 lg:py-3 text-muted-foreground text-sm hidden lg:table-cell">
+                          <div className="truncate max-w-[150px] lg:max-w-none">{customer.address}</div>
+                        </td>
+                        <td className="px-3 lg:px-4 py-2 lg:py-3 text-muted-foreground text-sm">
+                          <div className="text-xs lg:text-sm">{customer.joining_date}</div>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={4} className="text-center text-muted-foreground py-8 text-sm">
+                        No customers yet – add some via Customers page
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       </div>
     </DashboardLayout>

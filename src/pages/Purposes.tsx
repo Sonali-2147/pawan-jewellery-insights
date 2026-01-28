@@ -94,29 +94,30 @@ const Purposes = () => {
         actions={
           <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
             <DialogTrigger asChild>
-              <Button className="btn-gold">
+              <Button className="btn-gold text-sm">
                 <Plus className="w-4 h-4 mr-2" />
-                Add Purpose
+                <span className="hidden sm:inline">Add Purpose</span>
+                <span className="sm:hidden">Add</span>
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-card border-border">
+            <DialogContent className="bg-card border-border max-w-md mx-4">
               <DialogHeader>
                 <DialogTitle className="font-display text-xl gold-gradient-text">Add New Purpose</DialogTitle>
               </DialogHeader>
               <div className="space-y-4 mt-4">
                 <Input
                   placeholder="Purpose Name *"
-                  className="input-premium"
+                  className="input-premium text-sm"
                   value={formData.purpose}
                   onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                 />
                 <Textarea
                   placeholder="Description"
-                  className="input-premium min-h-[100px]"
+                  className="input-premium min-h-[80px] text-sm"
                   value={formData.descr}
                   onChange={(e) => setFormData({ ...formData, descr: e.target.value })}
                 />
-                <Button onClick={handleAdd} className="w-full btn-gold" disabled={createMutation.isPending}>
+                <Button onClick={handleAdd} className="w-full btn-gold text-sm" disabled={createMutation.isPending}>
                   {createMutation.isPending ? "Adding..." : "Add Purpose"}
                 </Button>
               </div>
@@ -129,16 +130,16 @@ const Purposes = () => {
       {error && <div className="text-center py-12 text-destructive">Error loading purposes. Check API connection.</div>}
 
       {/* Purpose Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
         {purposes.map((purpose) => (
-          <div key={purpose.id} className="card-premium p-6 group">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <h3 className="text-lg font-display font-semibold text-foreground">{purpose.purpose}</h3>
-                <p className="text-muted-foreground text-sm mt-2">{purpose.descr}</p>
-                <p className="text-xs text-primary mt-4">ID: {purpose.id}</p>
+          <div key={purpose.id} className="card-premium p-4 lg:p-6 group">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base lg:text-lg font-display font-semibold text-foreground truncate">{purpose.purpose}</h3>
+                <p className="text-muted-foreground text-sm mt-2 line-clamp-3">{purpose.descr}</p>
+                <p className="text-xs text-primary mt-3 lg:mt-4">ID: {purpose.id}</p>
               </div>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex gap-1 lg:gap-2 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
                 <Dialog open={editingPurpose?.id === purpose.id} onOpenChange={(open) => !open && setEditingPurpose(null)}>
                   <DialogTrigger asChild>
                     <Button
@@ -150,24 +151,24 @@ const Purposes = () => {
                       <Pencil className="w-4 h-4" />
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-card border-border">
+                  <DialogContent className="bg-card border-border max-w-md mx-4">
                     <DialogHeader>
                       <DialogTitle className="font-display text-xl gold-gradient-text">Edit Purpose</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-4 mt-4">
                       <Input
                         placeholder="Purpose Name *"
-                        className="input-premium"
+                        className="input-premium text-sm"
                         value={formData.purpose}
                         onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
                       />
                       <Textarea
                         placeholder="Description"
-                        className="input-premium min-h-[100px]"
+                        className="input-premium min-h-[80px] text-sm"
                         value={formData.descr}
                         onChange={(e) => setFormData({ ...formData, descr: e.target.value })}
                       />
-                      <Button onClick={handleUpdate} className="w-full btn-gold" disabled={updateMutation.isPending}>
+                      <Button onClick={handleUpdate} className="w-full btn-gold text-sm" disabled={updateMutation.isPending}>
                         {updateMutation.isPending ? "Updating..." : "Update Purpose"}
                       </Button>
                     </div>
@@ -180,7 +181,7 @@ const Purposes = () => {
                       <Trash2 className="w-4 h-4" />
                     </Button>
                   </AlertDialogTrigger>
-                  <AlertDialogContent className="bg-card border-border">
+                  <AlertDialogContent className="bg-card border-border max-w-md mx-4">
                     <AlertDialogHeader>
                       <AlertDialogTitle className="text-foreground">Delete Purpose?</AlertDialogTitle>
                       <AlertDialogDescription>
@@ -205,8 +206,8 @@ const Purposes = () => {
       </div>
 
       {purposes.length === 0 && !isLoading && (
-        <div className="card-premium p-12 text-center">
-          <p className="text-muted-foreground">No purposes found. Add your first purpose!</p>
+        <div className="card-premium p-8 lg:p-12 text-center">
+          <p className="text-muted-foreground text-sm lg:text-base">No purposes found. Add your first purpose!</p>
         </div>
       )}
     </DashboardLayout>

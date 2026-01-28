@@ -75,13 +75,18 @@ const Customers = () => {
         filters.start_date = formattedDate; // Use start_date for API range filtering
       }
       
+      console.log('Query filters:', filters);
+      console.log('Purpose filter value:', purposeFilter);
+      
       // Always get all data for client-side pagination
       const limit = dateFilter || purposeFilter || staffFilter ? 100 : 30;
       
       // If we have filters, use the filter endpoint, otherwise use getAll
       if (Object.keys(filters).length > 0) {
+        console.log('Using filter endpoint with:', filters);
         return customerApi.filter(1, limit, filters);
       } else {
+        console.log('Using getAll endpoint');
         return customerApi.getAll(1, limit);
       }
     },
@@ -184,6 +189,12 @@ const Customers = () => {
       customer.mob_no.includes(searchTerm) ||
       customer.address.toLowerCase().includes(searchTerm.toLowerCase());
     
+    // Purpose filter: check if customer matches selected purpose
+    let matchesPurpose = true;
+    if (purposeFilter) {
+      matchesPurpose = customer.purpose === purposeFilter;
+    }
+    
     // Date filter: show customers from selected date onwards (not exact match)
     let matchesDate = true;
     if (dateFilter) {
@@ -202,7 +213,17 @@ const Customers = () => {
       }
     }
     
-    return matchesSearch && matchesDate;
+    // Debug purpose filter
+    if (purposeFilter && enhancedCustomers.indexOf(customer) < 5) {
+      console.log('Purpose filter debug:', {
+        customerName: customer.name,
+        customerPurpose: customer.purpose,
+        filterPurpose: purposeFilter,
+        matches: matchesPurpose
+      });
+    }
+    
+    return matchesSearch && matchesPurpose && matchesDate;
   });
 
   // Calculate filtered pagination
@@ -418,12 +439,13 @@ const Customers = () => {
         title="Customers"
         subtitle="Manage your customer database"
         actions={
-          <div className="flex gap-3">
+          <div className="flex flex-col sm:flex-row gap-3">
           <Dialog open={isDownloadOpen} onOpenChange={setIsDownloadOpen}>
             <DialogTrigger asChild>
-              <Button variant="outline" className="border-border hover:bg-muted">
+              <Button variant="outline" className="border-border hover:bg-muted text-sm">
                 <Download className="w-4 h-4 mr-2" />
-                Export CSV
+                <span className="hidden sm:inline">Export CSV</span>
+                <span className="sm:hidden">Export</span>
               </Button>
             </DialogTrigger>
             <DialogContent className="bg-card border-border max-w-md">
@@ -481,9 +503,10 @@ const Customers = () => {
           </Dialog>
             <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
               <DialogTrigger asChild>
-                <Button className="btn-gold">
+                <Button className="btn-gold text-sm">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Customer
+                  <span className="hidden sm:inline">Add Customer</span>
+                  <span className="sm:hidden">Add</span>
                 </Button>
               </DialogTrigger>
               <DialogContent className="bg-card border-border max-w-lg max-h-[90vh] overflow-y-auto">
@@ -646,70 +669,74 @@ const Customers = () => {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-4 mb-6">
+      <div className="flex flex-col gap-4 mb-6">
         <div className="relative flex-1 min-w-[200px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Search by name, phone, or address..."
-            className="input-premium pl-10"
+            className="input-premium pl-10 text-sm"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <div className="relative min-w-[150px]">
-          <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <select
-            className="input-premium pl-10 pr-4 appearance-none cursor-pointer w-full"
-            value={purposeFilter || ""}
-            onChange={(e) => setPurposeFilter(e.target.value ? Number(e.target.value) : undefined)}
-          >
-            <option value="">All Purposes</option>
-            {purposes.map((p) => (
-              <option key={p.id} value={p.id}>{p.purpose}</option>
-            ))}
-          </select>
-        </div>
-        <div className="relative min-w-[200px]">
-          <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search staff by name or ID..."
-            className="input-premium pl-10"
-            value={staffFilter}
-            onChange={(e) => setStaffFilter(e.target.value)}
-          />
-        </div>
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button
-              variant="outline"
-              className={`border-border hover:bg-muted ${!dateFilter ? "text-muted-foreground" : ""}`}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="relative min-w-[150px]">
+            <Filter className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <select
+              className="input-premium pl-10 pr-4 appearance-none cursor-pointer w-full text-sm"
+              value={purposeFilter || ""}
+              onChange={(e) => setPurposeFilter(e.target.value ? Number(e.target.value) : undefined)}
             >
-              <CalendarIcon className="w-4 h-4 mr-2" />
-              {dateFilter ? formatDate(dateFilter) : "Filter by Date"}
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-auto p-0 bg-black border-yellow-500" align="start">
-            <Calendar
-              mode="single"
-              selected={dateFilter}
-              onSelect={(date) => setDateFilter(date)}
-              disabled={(date) =>
-                date > new Date() || date < new Date("1900-01-01")
-              }
-              className="border-0"
+              <option value="">All Purposes</option>
+              {purposes.map((p) => (
+                <option key={p.id} value={p.id}>{p.purpose}</option>
+              ))}
+            </select>
+          </div>
+          <div className="relative min-w-[200px]">
+            <UserCircle className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search staff by name or ID..."
+              className="input-premium pl-10 text-sm"
+              value={staffFilter}
+              onChange={(e) => setStaffFilter(e.target.value)}
             />
-          </PopoverContent>
-        </Popover>
-        {(searchTerm || purposeFilter || staffFilter || dateFilter) && (
-          <Button
-            variant="ghost"
-            onClick={() => { setSearchTerm(""); setPurposeFilter(undefined); setStaffFilter(""); setDateFilter(undefined); setPage(1); }}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <X className="w-4 h-4 mr-2" />
-            Clear
-          </Button>
-        )}
+          </div>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className={`border-border hover:bg-muted text-sm ${!dateFilter ? "text-muted-foreground" : ""}`}
+              >
+                <CalendarIcon className="w-4 h-4 mr-2" />
+                <span className="hidden sm:inline">{dateFilter ? formatDate(dateFilter) : "Filter by Date"}</span>
+                <span className="sm:hidden">{dateFilter ? formatDate(dateFilter) : "Date"}</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0 bg-black border-yellow-500" align="start">
+              <Calendar
+                mode="single"
+                selected={dateFilter}
+                onSelect={(date) => setDateFilter(date)}
+                disabled={(date) =>
+                  date > new Date() || date < new Date("1900-01-01")
+                }
+                className="border-0"
+              />
+            </PopoverContent>
+          </Popover>
+          {(searchTerm || purposeFilter || staffFilter || dateFilter) && (
+            <Button
+              variant="ghost"
+              onClick={() => { setSearchTerm(""); setPurposeFilter(undefined); setStaffFilter(""); setDateFilter(undefined); setPage(1); }}
+              className="text-muted-foreground hover:text-foreground text-sm"
+            >
+              <X className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Clear</span>
+              <span className="sm:hidden">Clear</span>
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Tabs for Table/Map View */}
@@ -728,34 +755,46 @@ const Customers = () => {
         <TabsContent value="table">
           {/* Customer Table */}
           <div className="card-premium overflow-hidden">
-            <div className="overflow-x-auto">
-              <table className="table-premium">
-                <thead>
-                  <tr>
-                    <th>Name</th>
-                    <th>Mobile</th>
-                    <th>Address</th>
-                    <th>Purpose</th>
-                    <th>Staff</th>
-                    <th>Joined</th>
-                    <th className="text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {paginatedCustomers.map((customer) => (
-                    <tr key={customer.id}>
-                      <td className="font-medium text-foreground">{customer.name}</td>
-                      <td className="text-muted-foreground">{customer.mob_no}</td>
-                      <td className="text-muted-foreground">{customer.address}</td>
-                      <td>
-                        <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
-                          {customer.purpose_name}
-                        </span>
-                      </td>
-                      <td className="text-muted-foreground text-sm">{customer.staff_name}</td>
-                      <td className="text-muted-foreground">{customer.joining_date}</td>
-                      <td className="text-right">
-                        <div className="flex justify-end gap-2">
+            <div className="overflow-x-auto -mx-4 lg:mx-0">
+              <div className="inline-block min-w-full align-middle">
+                <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
+                  <table className="table-premium min-w-full">
+                    <thead>
+                      <tr>
+                        <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm">Name</th>
+                        <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm hidden sm:table-cell">Mobile</th>
+                        <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm hidden lg:table-cell">Address</th>
+                        <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm">Purpose</th>
+                        <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm hidden md:table-cell">Staff</th>
+                        <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm hidden sm:table-cell">Joined</th>
+                        <th className="px-3 lg:px-4 py-2 lg:py-3 text-xs lg:text-sm text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {paginatedCustomers.map((customer) => (
+                        <tr key={customer.id}>
+                          <td className="px-3 lg:px-4 py-2 lg:py-3 font-medium text-foreground text-sm">
+                            <div className="truncate max-w-[120px] lg:max-w-none">{customer.name}</div>
+                          </td>
+                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-muted-foreground text-sm hidden sm:table-cell">
+                            <div className="truncate max-w-[100px] lg:max-w-none">{customer.mob_no}</div>
+                          </td>
+                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-muted-foreground text-sm hidden lg:table-cell">
+                            <div className="truncate max-w-[150px] lg:max-w-none">{customer.address}</div>
+                          </td>
+                          <td className="px-3 lg:px-4 py-2 lg:py-3">
+                            <span className="px-2 py-1 bg-primary/10 text-primary rounded-full text-xs">
+                              {customer.purpose_name}
+                            </span>
+                          </td>
+                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-muted-foreground text-sm hidden md:table-cell">
+                            <div className="truncate max-w-[100px] lg:max-w-none">{customer.staff_name}</div>
+                          </td>
+                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-muted-foreground text-sm hidden sm:table-cell">
+                            <div className="text-xs lg:text-sm">{customer.joining_date}</div>
+                          </td>
+                          <td className="px-3 lg:px-4 py-2 lg:py-3 text-right">
+                            <div className="flex justify-end gap-1 lg:gap-2">
                           <Dialog open={editingCustomer?.id === customer.id} onOpenChange={(open) => !open && setEditingCustomer(null)}>
                             <DialogTrigger asChild>
                               <Button size="icon" variant="ghost" className="h-8 w-8 hover:bg-muted" onClick={() => openEditDialog(customer)}>
@@ -925,21 +964,23 @@ const Customers = () => {
                 </tbody>
               </table>
             </div>
-            {isLoading && <div className="text-center py-8 text-muted-foreground">Loading...</div>}
-            {error && <div className="text-center py-8 text-destructive">Error loading customers. Check API connection.</div>}
-            {paginatedCustomers.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">No customers found</div>}
           </div>
+        </div>
+      </div>
+          {isLoading && <div className="text-center py-8 text-muted-foreground">Loading...</div>}
+          {error && <div className="text-center py-8 text-destructive">Error loading customers. Check API connection.</div>}
+          {paginatedCustomers.length === 0 && !isLoading && <div className="text-center py-8 text-muted-foreground">No customers found</div>}
 
           {/* Pagination */}
-          <div className="flex items-center justify-between mt-4">
-            <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4">
+            <p className="text-sm text-muted-foreground text-center sm:text-left">
               Page {page} of {totalFilteredPages} ({filteredCustomers.length} filtered, {apiFilteredCount} total)
             </p>
             <div className="flex gap-2">
-              <Button variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="border-border hover:bg-muted">
+              <Button variant="outline" onClick={() => setPage(Math.max(1, page - 1))} disabled={page === 1} className="border-border hover:bg-muted text-sm">
                 Previous
               </Button>
-              <Button variant="outline" onClick={() => setPage(Math.min(totalFilteredPages, page + 1))} disabled={page === totalFilteredPages} className="border-border hover:bg-muted">
+              <Button variant="outline" onClick={() => setPage(Math.min(totalFilteredPages, page + 1))} disabled={page === totalFilteredPages} className="border-border hover:bg-muted text-sm">
                 Next
               </Button>
             </div>

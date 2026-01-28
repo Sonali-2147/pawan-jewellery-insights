@@ -54,26 +54,26 @@ const Login = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 flex items-center justify-center p-4">
       {/* Background Pattern */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl"></div>
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-yellow-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute -top-20 -right-20 w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80 bg-yellow-500/5 rounded-full blur-3xl"></div>
+        <div className="absolute -bottom-20 -left-20 w-40 h-40 sm:w-60 sm:h-60 lg:w-80 lg:h-80 bg-yellow-500/5 rounded-full blur-3xl"></div>
       </div>
 
       {/* Login Card */}
-      <div className="relative w-full max-w-md">
-        <div className="card-premium p-8 border border-yellow-500/20">
+      <div className="relative w-full max-w-sm sm:max-w-md">
+        <div className="card-premium p-6 sm:p-8 border border-yellow-500/20">
           {/* Header */}
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 mb-4">
-              <LogIn className="w-8 h-8 text-yellow-500" />
+          <div className="text-center mb-6 sm:mb-8">
+            <div className="inline-flex items-center justify-center w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-yellow-500/10 border border-yellow-500/30 mb-3 sm:mb-4">
+              <LogIn className="w-6 h-6 sm:w-8 sm:h-8 text-yellow-500" />
             </div>
-            <h1 className="text-3xl font-display font-bold gold-gradient-text">
+            <h1 className="text-2xl sm:text-3xl font-display font-bold gold-gradient-text">
               Pavan Gold
             </h1>
-            <p className="text-muted-foreground mt-2">Insights </p>
+            <p className="text-muted-foreground mt-2 text-sm sm:text-base">Insights </p>
           </div>
 
           {/* Login Form */}
-          <form onSubmit={handleLogin} className="space-y-5">
+          <form onSubmit={handleLogin} className="space-y-4 sm:space-y-5">
             {/* Email Input */}
             <div>
               <label className="block text-sm font-medium text-foreground mb-2">
@@ -86,7 +86,7 @@ const Login = () => {
                   placeholder="Pavangold@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="input-premium pl-10"
+                  className="input-premium pl-10 text-sm"
                   disabled={isLoading}
                 />
               </div>
@@ -104,7 +104,7 @@ const Login = () => {
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="input-premium pl-10"
+                  className="input-premium pl-10 text-sm"
                   disabled={isLoading}
                 />
               </div>
@@ -115,7 +115,7 @@ const Login = () => {
             {/* Login Button */}
             <Button
               type="submit"
-              className="btn-gold w-full"
+              className="btn-gold w-full text-sm"
               disabled={isLoading}
             >
               {isLoading ? "Logging in..." : "Sign In"}
@@ -123,7 +123,7 @@ const Login = () => {
           </form>
 
           {/* Footer */}
-          <p className="text-center text-xs text-muted-foreground mt-6">
+          <p className="text-center text-xs text-muted-foreground mt-4 sm:mt-6">
             © 2026 Pavan Gold. All rights reserved.
           </p>
         </div>
