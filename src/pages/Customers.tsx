@@ -273,53 +273,58 @@ const Customers = () => {
     try {
       setIsDownloadOpen(false);
       toast({ title: "Exporting", description: "Preparing filtered records..." });
-      
-      // Fetch data based on selected start date
+
+      // Build filters from all active filters (purpose, staff, date)
       const filters: any = {};
       if (downloadStartDate) {
         filters.start_date = formatDate(downloadStartDate);
       }
-      
+      if (purposeFilter) {
+        filters.purpose_id = purposeFilter;
+      }
+      if (staffFilter && !isNaN(Number(staffFilter))) {
+        filters.staff_id = Number(staffFilter);
+      }
+
       // Implement paginated export to get all records
       let allCustomers: any[] = [];
       let page = 1;
       let hasMoreData = true;
-      
+
       console.log('Starting paginated export...');
-      
+
       while (hasMoreData) {
         const limit = 100; // API limit per page
-        const exportData = Object.keys(filters).length > 0 
+        const exportData = Object.keys(filters).length > 0
           ? await customerApi.filter(page, limit, filters)
           : await customerApi.getAll(page, limit);
-        
+
         const customers = exportData?.data || [];
         allCustomers = [...allCustomers, ...customers];
-        
+
         console.log(`Page ${page}: Got ${customers.length} customers, total so far: ${allCustomers.length}`);
         console.log('API response:', {
           currentPage: exportData?.page,
           totalPages: exportData?.total_pages,
           totalRecords: exportData?.total
         });
-        
+
         // Check if there are more records
-        // Continue if we got a full page (100 records) or if API indicates more pages
         hasMoreData = customers.length === limit;
         console.log(`Pagination check: got ${customers.length} records, limit is ${limit}, hasMoreData: ${hasMoreData}`);
         page++;
-        
+
         // Safety check to prevent infinite loops
         if (page > 50) {
           console.log('Safety limit reached, stopping pagination');
           break;
         }
       }
-      
+
       console.log(`Export complete: ${allCustomers.length} total customers fetched`);
-      
+
       if (allCustomers.length === 0) {
-        toast({ title: "No Data", description: "No customers found for selected date", variant: "destructive" });
+        toast({ title: "No Data", description: "No customers found for selected filter", variant: "destructive" });
         return;
       }
 
@@ -362,21 +367,21 @@ const Customers = () => {
       const blob = new Blob([csvRows], { type: "text/csv;charset=utf-8;" });
       const link = document.createElement("a");
       const url = URL.createObjectURL(blob);
-      
+
       link.setAttribute("href", url);
-      const dateRange = downloadStartDate 
+      const dateRange = downloadStartDate
         ? `from_${formatDate(downloadStartDate)}`
         : "all";
       link.setAttribute("download", `customers_${dateRange}.csv`);
       link.style.visibility = "hidden";
-      
+
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       // Cleanup
       setTimeout(() => URL.revokeObjectURL(url), 100);
-      
+
       toast({ title: "Success", description: `Exported ${allCustomers.length} customers successfully` });
     } catch (err) {
       console.error("Export error:", err);
